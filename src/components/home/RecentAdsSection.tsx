@@ -20,8 +20,7 @@ export const RecentAdsSection = () => {
         .from('ads')
         .select(`
           *,
-          category:categories(*),
-          profiles(*)
+          category:categories(*)
         `)
         .eq('status', 'approved')
         .order('created_at', { ascending: false })

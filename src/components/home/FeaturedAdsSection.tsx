@@ -21,8 +21,7 @@ export const FeaturedAdsSection = () => {
         .from('ads')
         .select(`
           *,
-          category:categories(*),
-          profiles(*)
+          category:categories(*)
         `)
         .eq('status', 'approved')
         .eq('is_featured', true)
