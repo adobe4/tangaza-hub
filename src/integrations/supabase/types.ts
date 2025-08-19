@@ -24,8 +24,11 @@ export type Database = {
           created_at: string | null
           description: string
           display_order: number | null
+          expires_at: string | null
           id: string
           image_url: string | null
+          images: string[] | null
+          is_featured: boolean | null
           is_premium: boolean | null
           location: string | null
           price: number | null
@@ -33,6 +36,7 @@ export type Database = {
           title: string
           updated_at: string | null
           user_id: string
+          views_count: number | null
         }
         Insert: {
           approved_at?: string | null
@@ -43,8 +47,11 @@ export type Database = {
           created_at?: string | null
           description: string
           display_order?: number | null
+          expires_at?: string | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
+          is_featured?: boolean | null
           is_premium?: boolean | null
           location?: string | null
           price?: number | null
@@ -52,6 +59,7 @@ export type Database = {
           title: string
           updated_at?: string | null
           user_id: string
+          views_count?: number | null
         }
         Update: {
           approved_at?: string | null
@@ -62,8 +70,11 @@ export type Database = {
           created_at?: string | null
           description?: string
           display_order?: number | null
+          expires_at?: string | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
+          is_featured?: boolean | null
           is_premium?: boolean | null
           location?: string | null
           price?: number | null
@@ -71,6 +82,7 @@ export type Database = {
           title?: string
           updated_at?: string | null
           user_id?: string
+          views_count?: number | null
         }
         Relationships: [
           {
@@ -105,11 +117,13 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           email: string | null
           full_name: string | null
           id: string
           is_trusted: boolean | null
+          location: string | null
           phone: string | null
           updated_at: string | null
           user_id: string
@@ -117,11 +131,13 @@ export type Database = {
           verified_by: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           is_trusted?: boolean | null
+          location?: string | null
           phone?: string | null
           updated_at?: string | null
           user_id: string
@@ -129,11 +145,13 @@ export type Database = {
           verified_by?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           is_trusted?: boolean | null
+          location?: string | null
           phone?: string | null
           updated_at?: string | null
           user_id?: string
