@@ -27,8 +27,11 @@ const AdminPage = () => {
   useEffect(() => {
     if (isAdmin) {
       fetchAdminData();
+    } else if (!loading) {
+      // If not admin and auth loading is complete, set loadingData to false
+      setLoadingData(false);
     }
-  }, [isAdmin]);
+  }, [isAdmin, loading]);
 
   const fetchAdminData = async () => {
     try {

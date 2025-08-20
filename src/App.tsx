@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PostAd from "./pages/PostAd";
 import AdsPage from "./pages/AdsPage";
+import CategoriesPage from "./pages/CategoriesPage";
 import Dashboard from "./pages/Dashboard";
 import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/post-ad" element={<PostAd />} />
             <Route path="/ads" element={<AdsPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<AdminPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
