@@ -63,28 +63,39 @@ const AdminPage = () => {
 
       // Fetch pending ads
       console.log('Fetching pending ads...');
-      const { data: pendingData, error: pendingError } = await supabase
+      const { data: adsData, error: adsError } = await supabase
         .from('ads')
-        .select(`
-          *,
-          categories!category_id(*),
-          profile:profiles(*)
-        `)
+        .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      console.log('Pending ads query result:', { pendingData, pendingError });
+      console.log('Pending ads query result:', { adsData, adsError });
       
-      if (pendingError) {
-        console.error('Error fetching pending ads:', pendingError);
+      if (adsError) {
+        console.error('Error fetching pending ads:', adsError);
         toast({
           title: "Error", 
-          description: `Failed to fetch pending ads: ${pendingError.message}`,
+          description: `Failed to fetch pending ads: ${adsError.message}`,
           variant: "destructive",
         });
       } else {
-        console.log('Successfully fetched pending ads:', pendingData?.length || 0);
-        setPendingAds(pendingData || []);
+        // Fetch categories separately to avoid relationship conflicts
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from('categories')
+          .select('*');
+
+        if (categoriesError) {
+          console.error('Error fetching categories:', categoriesError);
+        }
+
+        // Manually join the data
+        const adsWithCategories = (adsData || []).map(ad => ({
+          ...ad,
+          category: categoriesData?.find(cat => cat.id === ad.category_id)
+        }));
+
+        console.log('Successfully fetched pending ads:', adsWithCategories.length);
+        setPendingAds(adsWithCategories);
       }
 
       // Fetch stats
@@ -479,7 +490,7 @@ const AdminPage = () => {
                               </Badge>
                             )}
                             <Badge variant="outline">
-                              {ad.category?.name}
+                              {ad.category?.name || 'Unknown Category'}
                             </Badge>
                           </div>
                         </div>
