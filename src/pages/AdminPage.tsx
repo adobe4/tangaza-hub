@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navigate } from 'react-router-dom';
 import { Ad } from '@/types';
-import { CheckCircle, XCircle, Users, FileText, Star } from 'lucide-react';
+import { CheckCircle, XCircle, Users, FileText, Star, Shield, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminPage = () => {
@@ -21,6 +21,7 @@ const AdminPage = () => {
     pendingAds: 0,
     approvedAds: 0
   });
+  const [users, setUsers] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -44,6 +45,15 @@ const AdminPage = () => {
 
       if (pendingError) throw pendingError;
       setPendingAds(pendingData || []);
+
+      // Fetch all users for management
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (usersError) throw usersError;
+      setUsers(usersData || []);
 
       // Fetch stats
       const [usersCount, adsCount, pendingCount, approvedCount] = await Promise.all([
@@ -157,6 +167,73 @@ const AdminPage = () => {
     }
   };
 
+  const handleVerifyUser = async (userId: string, isVerified: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_verified: !isVerified,
+          can_post_directly: !isVerified,
+          verified_at: !isVerified ? new Date().toISOString() : null,
+          verified_by: !isVerified ? user?.id : null
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u => 
+        u.user_id === userId ? { 
+          ...u, 
+          is_verified: !isVerified,
+          can_post_directly: !isVerified,
+          verified_at: !isVerified ? new Date().toISOString() : null 
+        } : u
+      ));
+
+      toast({
+        title: "Success",
+        description: `User ${!isVerified ? 'verified' : 'unverified'} successfully.`,
+      });
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAd = async (adId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ads')
+        .delete()
+        .eq('id', adId);
+
+      if (error) throw error;
+
+      setPendingAds(prev => prev.filter(ad => ad.id !== adId));
+      setStats(prev => ({
+        ...prev,
+        pendingAds: prev.pendingAds - 1,
+        totalAds: prev.totalAds - 1
+      }));
+
+      toast({
+        title: "Success",
+        description: "Ad deleted successfully.",
+      });
+    } catch (error: any) {
+      console.error('Error deleting ad:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete ad.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading || loadingData) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" />;
   if (!isAdmin) {
@@ -229,7 +306,7 @@ const AdminPage = () => {
         <Tabs defaultValue="pending" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="pending">Pending Ads ({stats.pendingAds})</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="users">Users ({stats.totalUsers})</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
 
@@ -297,6 +374,14 @@ const AdminPage = () => {
                             <Star className="h-4 w-4 mr-2" />
                             {ad.is_featured ? 'Unfeature' : 'Feature'}
                           </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleDeleteAd(ad.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -312,7 +397,54 @@ const AdminPage = () => {
                 <CardTitle>User Management</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">User management features coming soon...</p>
+                {users.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No users found.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {users.map((profile) => (
+                      <div key={profile.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h3 className="font-semibold text-lg">{profile.full_name || 'Anonymous User'}</h3>
+                            <p className="text-muted-foreground">{profile.email}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            {profile.is_verified && (
+                              <Badge variant="secondary">
+                                <Shield className="h-3 w-3 mr-1" />
+                                Verified
+                              </Badge>
+                            )}
+                            {profile.can_post_directly && (
+                              <Badge variant="outline">
+                                Direct Posting
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                          <span>Location: {profile.location || 'Not specified'}</span>
+                          <span>Phone: {profile.phone || 'Not provided'}</span>
+                          <span>Joined: {new Date(profile.created_at).toLocaleDateString()}</span>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button 
+                            variant={profile.is_verified ? "outline" : "default"}
+                            size="sm"
+                            onClick={() => handleVerifyUser(profile.user_id, profile.is_verified)}
+                          >
+                            <Shield className="h-4 w-4 mr-2" />
+                            {profile.is_verified ? 'Unverify' : 'Verify'} User
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

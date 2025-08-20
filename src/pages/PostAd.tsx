@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Category } from '@/types';
+import { Upload, Link, X } from 'lucide-react';
 
 const PostAd = () => {
   const { user, loading } = useAuth();
@@ -26,8 +27,11 @@ const PostAd = () => {
     price: '',
     location: '',
     contact_phone: '',
-    contact_email: ''
+    contact_email: '',
+    image_urls: [''],
+    uploaded_images: []
   });
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -47,12 +51,92 @@ const PostAd = () => {
     }
   };
 
+  const handleImageUpload = async (files: FileList) => {
+    if (!user) return;
+    
+    setUploadingImages(true);
+    const uploadedUrls: string[] = [];
+    
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
+        
+        const { error: uploadError, data } = await supabase.storage
+          .from('ads')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('ads')
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(publicUrl);
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        uploaded_images: [...prev.uploaded_images, ...uploadedUrls]
+      }));
+
+      toast({
+        title: "Success",
+        description: `${uploadedUrls.length} image(s) uploaded successfully.`,
+      });
+    } catch (error: any) {
+      console.error('Error uploading images:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload images.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const addImageUrlField = () => {
+    setFormData(prev => ({
+      ...prev,
+      image_urls: [...prev.image_urls, '']
+    }));
+  };
+
+  const removeImageUrl = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      image_urls: prev.image_urls.filter((_, i) => i !== index)
+    }));
+  };
+
+  const removeUploadedImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      uploaded_images: prev.uploaded_images.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateImageUrl = (index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      image_urls: prev.image_urls.map((url, i) => i === index ? value : url)
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     setSubmitting(true);
     try {
+      // Combine uploaded images and URL images
+      const allImages = [
+        ...formData.uploaded_images,
+        ...formData.image_urls.filter(url => url.trim() !== '')
+      ];
+
       const { error } = await supabase
         .from('ads')
         .insert({
@@ -64,6 +148,7 @@ const PostAd = () => {
           location: formData.location,
           contact_phone: formData.contact_phone,
           contact_email: formData.contact_email || user.email,
+          image_urls: allImages.length > 0 ? allImages : null,
           status: 'pending'
         });
 
@@ -190,11 +275,90 @@ const PostAd = () => {
                 </div>
               </div>
 
+              {/* Image Upload Section */}
+              <div className="space-y-4">
+                <Label>Images (Optional)</Label>
+                
+                {/* File Upload */}
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                  <div className="text-center">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-2">Upload images from your device</p>
+                    <Input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
+                      disabled={uploadingImages}
+                      className="max-w-xs mx-auto"
+                    />
+                    {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+                  </div>
+                </div>
+
+                {/* Uploaded Images Preview */}
+                {formData.uploaded_images.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Uploaded Images:</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {formData.uploaded_images.map((url, index) => (
+                        <div key={index} className="relative">
+                          <img src={url} alt={`Upload ${index + 1}`} className="w-full h-20 object-cover rounded border" />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-1 right-1 h-6 w-6 p-0"
+                            onClick={() => removeUploadedImage(index)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* URL Input */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Link className="h-4 w-4" />
+                    <Label className="text-sm font-medium">Or add image URLs:</Label>
+                  </div>
+                  {formData.image_urls.map((url, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        placeholder="Enter image URL"
+                        value={url}
+                        onChange={(e) => updateImageUrl(index, e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeImageUrl(index)}
+                        disabled={formData.image_urls.length === 1}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addImageUrlField}
+                  >
+                    + Add Another URL
+                  </Button>
+                </div>
+              </div>
+
               <Button 
                 type="submit" 
                 className="w-full" 
                 variant="gradient"
-                disabled={submitting}
+                disabled={submitting || uploadingImages}
               >
                 {submitting ? 'Posting...' : 'Post Ad'}
               </Button>
