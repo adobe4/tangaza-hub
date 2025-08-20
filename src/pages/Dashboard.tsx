@@ -30,7 +30,7 @@ const Dashboard = () => {
         .from('ads')
         .select(`
           *,
-          category:categories(*)
+          categories!category_id(*)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });

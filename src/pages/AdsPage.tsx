@@ -41,7 +41,7 @@ const AdsPage = () => {
         .from('ads')
         .select(`
           *,
-          category:categories(*)
+          categories!category_id(*)
         `)
         .eq('status', 'approved');
 

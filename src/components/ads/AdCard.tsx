@@ -114,10 +114,10 @@ export const AdCard: React.FC<AdCardProps> = ({ ad, showStatus = false }) => {
             </div>
 
             {/* Category */}
-            {ad.category && (
+            {(ad.categories || ad.category) && (
               <div className="flex items-center justify-between">
                 <Badge variant="secondary" className="text-xs">
-                  {ad.category.name}
+                  {ad.categories?.name || ad.category?.name}
                 </Badge>
               </div>
             )}

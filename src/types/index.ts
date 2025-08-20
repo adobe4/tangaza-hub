@@ -40,6 +40,7 @@ export interface Ad {
   approved_by?: string;
   expires_at?: string;
   // Relations
+  categories?: Category;
   category?: Category;
   profiles?: any;
 }

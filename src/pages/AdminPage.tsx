@@ -67,7 +67,7 @@ const AdminPage = () => {
         .from('ads')
         .select(`
           *,
-          category:categories(*),
+          categories!category_id(*),
           profile:profiles(*)
         `)
         .eq('status', 'pending')
