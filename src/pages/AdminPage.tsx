@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navigate } from 'react-router-dom';
 import { Ad } from '@/types';
-import { CheckCircle, XCircle, Users, FileText, Star, Shield, Trash2 } from 'lucide-react';
+import { CheckCircle, XCircle, Users, FileText, Star, Shield, Trash2, ArrowUp, ArrowDown, Crown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminPage = () => {
@@ -170,15 +170,12 @@ const AdminPage = () => {
     }
   };
 
-  const handleVerifyUser = async (userId: string, isVerified: boolean) => {
+  const handleApproveUser = async (userId: string, isApproved: boolean) => {
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          is_verified: !isVerified,
-          can_post_directly: !isVerified,
-          verified_at: !isVerified ? new Date().toISOString() : null,
-          verified_by: !isVerified ? user?.id : null
+          is_approved: !isApproved
         })
         .eq('user_id', userId);
 
@@ -187,21 +184,112 @@ const AdminPage = () => {
       setUsers(prev => prev.map(u => 
         u.user_id === userId ? { 
           ...u, 
-          is_verified: !isVerified,
-          can_post_directly: !isVerified,
-          verified_at: !isVerified ? new Date().toISOString() : null 
+          is_approved: !isApproved
         } : u
       ));
 
       toast({
         title: "Success",
-        description: `User ${!isVerified ? 'verified' : 'unverified'} successfully.`,
+        description: `User ${!isApproved ? 'approved' : 'disapproved'} successfully.`,
       });
     } catch (error: any) {
-      console.error('Error updating user:', error);
+      console.error('Error updating user approval:', error);
       toast({
         title: "Error",
-        description: "Failed to update user.",
+        description: "Failed to update user approval.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMakePremium = async (userId: string, isPremium: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_verified: !isPremium,
+          can_post_directly: !isPremium,
+          verified_at: !isPremium ? new Date().toISOString() : null,
+          verified_by: !isPremium ? user?.id : null
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u => 
+        u.user_id === userId ? { 
+          ...u, 
+          is_verified: !isPremium,
+          can_post_directly: !isPremium,
+          verified_at: !isPremium ? new Date().toISOString() : null 
+        } : u
+      ));
+
+      toast({
+        title: "Success",
+        description: `User ${!isPremium ? 'upgraded to premium' : 'removed from premium'} successfully.`,
+      });
+    } catch (error: any) {
+      console.error('Error updating user premium status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user premium status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.filter(u => u.user_id !== userId));
+      setStats(prev => ({
+        ...prev,
+        totalUsers: prev.totalUsers - 1
+      }));
+
+      toast({
+        title: "Success",
+        description: "User deleted successfully.",
+      });
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReorderAd = async (adId: string, newOrder: number) => {
+    try {
+      const { error } = await supabase
+        .from('ads')
+        .update({ display_order: newOrder })
+        .eq('id', adId);
+
+      if (error) throw error;
+
+      setPendingAds(prev => prev.map(ad => 
+        ad.id === adId ? { ...ad, display_order: newOrder } : ad
+      ));
+
+      toast({
+        title: "Success",
+        description: "Ad order updated successfully.",
+      });
+    } catch (error: any) {
+      console.error('Error updating ad order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update ad order.",
         variant: "destructive",
       });
     }
@@ -352,40 +440,56 @@ const AdminPage = () => {
                           <span>Posted: {new Date(ad.created_at).toLocaleDateString()}</span>
                         </div>
 
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="default" 
-                            size="sm"
-                            onClick={() => handleApproveAd(ad.id)}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Approve
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => handleRejectAd(ad.id)}
-                          >
-                            <XCircle className="h-4 w-4 mr-2" />
-                            Reject
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleFeatureAd(ad.id, ad.is_featured)}
-                          >
-                            <Star className="h-4 w-4 mr-2" />
-                            {ad.is_featured ? 'Unfeature' : 'Feature'}
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => handleDeleteAd(ad.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </Button>
-                        </div>
+                         <div className="flex gap-2 flex-wrap">
+                           <Button 
+                             variant="default" 
+                             size="sm"
+                             onClick={() => handleApproveAd(ad.id)}
+                           >
+                             <CheckCircle className="h-4 w-4 mr-2" />
+                             Approve
+                           </Button>
+                           <Button 
+                             variant="destructive" 
+                             size="sm"
+                             onClick={() => handleRejectAd(ad.id)}
+                           >
+                             <XCircle className="h-4 w-4 mr-2" />
+                             Reject
+                           </Button>
+                           <Button 
+                             variant="outline" 
+                             size="sm"
+                             onClick={() => handleFeatureAd(ad.id, ad.is_featured)}
+                           >
+                             <Star className="h-4 w-4 mr-2" />
+                             {ad.is_featured ? 'Unfeature' : 'Feature'}
+                           </Button>
+                           <Button 
+                             variant="outline" 
+                             size="sm"
+                             onClick={() => handleReorderAd(ad.id, (ad.display_order || 0) + 1)}
+                           >
+                             <ArrowUp className="h-4 w-4 mr-2" />
+                             Move Up
+                           </Button>
+                           <Button 
+                             variant="outline" 
+                             size="sm"
+                             onClick={() => handleReorderAd(ad.id, Math.max(0, (ad.display_order || 0) - 1))}
+                           >
+                             <ArrowDown className="h-4 w-4 mr-2" />
+                             Move Down
+                           </Button>
+                           <Button 
+                             variant="destructive" 
+                             size="sm"
+                             onClick={() => handleDeleteAd(ad.id)}
+                           >
+                             <Trash2 className="h-4 w-4 mr-2" />
+                             Delete
+                           </Button>
+                         </div>
                       </div>
                     ))}
                   </div>
@@ -408,42 +512,65 @@ const AdminPage = () => {
                   <div className="space-y-4">
                     {users.map((profile) => (
                       <div key={profile.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-semibold text-lg">{profile.full_name || 'Anonymous User'}</h3>
-                            <p className="text-muted-foreground">{profile.email}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            {profile.is_verified && (
-                              <Badge variant="secondary">
-                                <Shield className="h-3 w-3 mr-1" />
-                                Verified
-                              </Badge>
-                            )}
-                            {profile.can_post_directly && (
-                              <Badge variant="outline">
-                                Direct Posting
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                          <span>Location: {profile.location || 'Not specified'}</span>
-                          <span>Phone: {profile.phone || 'Not provided'}</span>
-                          <span>Joined: {new Date(profile.created_at).toLocaleDateString()}</span>
-                        </div>
+                         <div className="flex justify-between items-start mb-2">
+                           <div>
+                             <h3 className="font-semibold text-lg">{profile.full_name || 'Anonymous User'}</h3>
+                             <p className="text-muted-foreground">{profile.email}</p>
+                           </div>
+                           <div className="flex gap-2">
+                             {profile.is_approved && (
+                               <Badge variant="default">
+                                 <CheckCircle className="h-3 w-3 mr-1" />
+                                 Approved
+                               </Badge>
+                             )}
+                             {profile.is_verified && (
+                               <Badge variant="secondary">
+                                 <Crown className="h-3 w-3 mr-1" />
+                                 Premium
+                               </Badge>
+                             )}
+                             {profile.can_post_directly && (
+                               <Badge variant="outline">
+                                 Auto-Approve
+                               </Badge>
+                             )}
+                           </div>
+                         </div>
+                         
+                         <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                           <span>Status: {profile.is_approved ? 'Approved' : 'Pending Approval'}</span>
+                           <span>Location: {profile.location || 'Not specified'}</span>
+                           <span>Phone: {profile.phone || 'Not provided'}</span>
+                           <span>Joined: {new Date(profile.created_at).toLocaleDateString()}</span>
+                         </div>
 
-                        <div className="flex gap-2">
-                          <Button 
-                            variant={profile.is_verified ? "outline" : "default"}
-                            size="sm"
-                            onClick={() => handleVerifyUser(profile.user_id, profile.is_verified)}
-                          >
-                            <Shield className="h-4 w-4 mr-2" />
-                            {profile.is_verified ? 'Unverify' : 'Verify'} User
-                          </Button>
-                        </div>
+                         <div className="flex gap-2 flex-wrap">
+                           <Button 
+                             variant={profile.is_approved ? "outline" : "default"}
+                             size="sm"
+                             onClick={() => handleApproveUser(profile.user_id, profile.is_approved)}
+                           >
+                             <CheckCircle className="h-4 w-4 mr-2" />
+                             {profile.is_approved ? 'Disapprove' : 'Approve'} User
+                           </Button>
+                           <Button 
+                             variant={profile.is_verified ? "outline" : "secondary"}
+                             size="sm"
+                             onClick={() => handleMakePremium(profile.user_id, profile.is_verified)}
+                           >
+                             <Crown className="h-4 w-4 mr-2" />
+                             {profile.is_verified ? 'Remove Premium' : 'Make Premium'}
+                           </Button>
+                           <Button 
+                             variant="destructive" 
+                             size="sm"
+                             onClick={() => handleDeleteUser(profile.user_id)}
+                           >
+                             <Trash2 className="h-4 w-4 mr-2" />
+                             Delete User
+                           </Button>
+                         </div>
                       </div>
                     ))}
                   </div>

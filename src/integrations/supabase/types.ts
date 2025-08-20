@@ -129,6 +129,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_approved: boolean | null
           is_trusted: boolean | null
           is_verified: boolean | null
           location: string | null
@@ -145,6 +146,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_approved?: boolean | null
           is_trusted?: boolean | null
           is_verified?: boolean | null
           location?: string | null
@@ -161,6 +163,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_approved?: boolean | null
           is_trusted?: boolean | null
           is_verified?: boolean | null
           location?: string | null

@@ -19,6 +19,8 @@ const PostAd = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [checkingApproval, setCheckingApproval] = useState(true);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -35,7 +37,27 @@ const PostAd = () => {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+    if (user) {
+      checkUserApproval();
+    }
+  }, [user]);
+
+  const checkUserApproval = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_approved, is_verified, can_post_directly')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (error) throw error;
+      setUserProfile(data);
+    } catch (error) {
+      console.error('Error checking user approval:', error);
+    } finally {
+      setCheckingApproval(false);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -172,8 +194,36 @@ const PostAd = () => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading || checkingApproval) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" />;
+  
+  // Check if user is approved to post ads
+  if (userProfile && !userProfile.is_approved) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-center text-warning">Account Approval Required</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <p className="text-muted-foreground">
+                Your account is currently pending approval from our administrators. 
+                You'll be able to post ads once your account has been approved.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                This process typically takes 24-48 hours. Thank you for your patience!
+              </p>
+              <Button onClick={() => navigate('/')} variant="outline">
+                Back to Home
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
