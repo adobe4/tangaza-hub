@@ -29,13 +29,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Check admin role when user logs in
         if (session?.user) {
           setTimeout(async () => {
-            const { data: roleData } = await supabase
+            console.log('Checking admin role for user:', session.user.id);
+            const { data: roleData, error } = await supabase
               .from('user_roles')
               .select('role')
               .eq('user_id', session.user.id)
               .eq('role', 'admin')
-              .single();
+              .maybeSingle();
             
+            console.log('Admin role check result:', { roleData, error });
             setIsAdmin(!!roleData);
           }, 0);
         } else {
