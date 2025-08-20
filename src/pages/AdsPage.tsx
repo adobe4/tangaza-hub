@@ -39,10 +39,7 @@ const AdsPage = () => {
     try {
       let query = supabase
         .from('ads')
-        .select(`
-          *,
-          categories!category_id(*)
-        `)
+        .select('*')
         .eq('status', 'approved');
 
       if (selectedCategory !== 'all') {
@@ -57,10 +54,24 @@ const AdsPage = () => {
         query = query.order('price', { ascending: false });
       }
 
-      const { data, error } = await query.limit(50);
+      const { data: adsData, error: adsError } = await query.limit(50);
 
-      if (error) throw error;
-      setAds(data || []);
+      if (adsError) throw adsError;
+
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('categories')
+        .select('*');
+
+      if (categoriesError) throw categoriesError;
+
+      // Manually join the data
+      const adsWithCategories = (adsData || []).map(ad => ({
+        ...ad,
+        categories: categoriesData?.find(cat => cat.id === ad.category_id)
+      }));
+
+      setAds(adsWithCategories);
     } catch (error) {
       console.error('Error fetching ads:', error);
     } finally {

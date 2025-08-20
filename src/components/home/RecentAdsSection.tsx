@@ -16,18 +16,30 @@ export const RecentAdsSection = () => {
 
   const fetchRecentAds = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch ads
+      const { data: adsData, error: adsError } = await supabase
         .from('ads')
-        .select(`
-          *,
-          categories!category_id(*)
-        `)
+        .select('*')
         .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .limit(8);
 
-      if (error) throw error;
-      setAds(data || []);
+      if (adsError) throw adsError;
+
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('categories')
+        .select('*');
+
+      if (categoriesError) throw categoriesError;
+
+      // Manually join the data
+      const adsWithCategories = (adsData || []).map(ad => ({
+        ...ad,
+        categories: categoriesData?.find(cat => cat.id === ad.category_id)
+      }));
+
+      setAds(adsWithCategories);
     } catch (error) {
       console.error('Error fetching recent ads:', error);
     } finally {

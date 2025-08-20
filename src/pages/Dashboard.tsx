@@ -26,17 +26,29 @@ const Dashboard = () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      // Fetch ads
+      const { data: adsData, error: adsError } = await supabase
         .from('ads')
-        .select(`
-          *,
-          categories!category_id(*)
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setUserAds(data || []);
+      if (adsError) throw adsError;
+
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('categories')
+        .select('*');
+
+      if (categoriesError) throw categoriesError;
+
+      // Manually join the data
+      const adsWithCategories = (adsData || []).map(ad => ({
+        ...ad,
+        categories: categoriesData?.find(cat => cat.id === ad.category_id)
+      }));
+
+      setUserAds(adsWithCategories);
     } catch (error) {
       console.error('Error fetching user ads:', error);
     } finally {
@@ -157,7 +169,7 @@ const Dashboard = () => {
                     <div className="flex-1">
                       <h3 className="font-semibold">{ad.title}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {ad.category?.name} • {ad.location} • 
+                        {ad.categories?.name} • {ad.location} • 
                         Created: {new Date(ad.created_at).toLocaleDateString()}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
