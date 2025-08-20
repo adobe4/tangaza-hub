@@ -27,6 +27,7 @@ export type Database = {
           expires_at: string | null
           id: string
           image_url: string | null
+          image_urls: string[] | null
           images: string[] | null
           is_featured: boolean | null
           is_premium: boolean | null
@@ -35,6 +36,7 @@ export type Database = {
           status: string | null
           title: string
           updated_at: string | null
+          uploaded_images: string[] | null
           user_id: string
           views_count: number | null
         }
@@ -50,6 +52,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           images?: string[] | null
           is_featured?: boolean | null
           is_premium?: boolean | null
@@ -58,6 +61,7 @@ export type Database = {
           status?: string | null
           title: string
           updated_at?: string | null
+          uploaded_images?: string[] | null
           user_id: string
           views_count?: number | null
         }
@@ -73,6 +77,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           images?: string[] | null
           is_featured?: boolean | null
           is_premium?: boolean | null
@@ -81,6 +86,7 @@ export type Database = {
           status?: string | null
           title?: string
           updated_at?: string | null
+          uploaded_images?: string[] | null
           user_id?: string
           views_count?: number | null
         }
@@ -118,11 +124,13 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          can_post_directly: boolean | null
           created_at: string | null
           email: string | null
           full_name: string | null
           id: string
           is_trusted: boolean | null
+          is_verified: boolean | null
           location: string | null
           phone: string | null
           updated_at: string | null
@@ -132,11 +140,13 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          can_post_directly?: boolean | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           is_trusted?: boolean | null
+          is_verified?: boolean | null
           location?: string | null
           phone?: string | null
           updated_at?: string | null
@@ -146,11 +156,13 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          can_post_directly?: boolean | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           is_trusted?: boolean | null
+          is_verified?: boolean | null
           location?: string | null
           phone?: string | null
           updated_at?: string | null
@@ -183,6 +195,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_user_post_directly: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
