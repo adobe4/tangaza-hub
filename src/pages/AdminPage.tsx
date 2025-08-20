@@ -35,6 +35,8 @@ const AdminPage = () => {
 
   const fetchAdminData = async () => {
     try {
+      console.log('Fetching admin data...');
+      
       // Fetch pending ads
       const { data: pendingData, error: pendingError } = await supabase
         .from('ads')
@@ -46,7 +48,11 @@ const AdminPage = () => {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (pendingError) throw pendingError;
+      if (pendingError) {
+        console.error('Error fetching pending ads:', pendingError);
+        throw pendingError;
+      }
+      console.log('Fetched pending ads:', pendingData?.length || 0);
       setPendingAds(pendingData || []);
 
       // Fetch all users for management
@@ -55,7 +61,11 @@ const AdminPage = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (usersError) throw usersError;
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        throw usersError;
+      }
+      console.log('Fetched users:', usersData?.length || 0);
       setUsers(usersData || []);
 
       // Fetch stats
@@ -73,8 +83,14 @@ const AdminPage = () => {
         approvedAds: approvedCount.count || 0
       });
 
+      console.log('Admin data fetched successfully');
     } catch (error) {
       console.error('Error fetching admin data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load admin data. Please refresh the page.",
+        variant: "destructive",
+      });
     } finally {
       setLoadingData(false);
     }

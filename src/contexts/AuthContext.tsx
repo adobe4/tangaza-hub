@@ -28,18 +28,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Check admin role when user logs in
         if (session?.user) {
-          setTimeout(async () => {
-            console.log('Checking admin role for user:', session.user.id);
-            const { data: roleData, error } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', session.user.id)
-              .eq('role', 'admin')
-              .maybeSingle();
-            
-            console.log('Admin role check result:', { roleData, error });
-            setIsAdmin(!!roleData);
-          }, 0);
+          const checkAdminRole = async () => {
+            try {
+              console.log('Checking admin role for user:', session.user.id);
+              const { data: roleData, error } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .eq('role', 'admin')
+                .maybeSingle();
+              
+              console.log('Admin role check result:', { roleData, error });
+              setIsAdmin(!!roleData);
+            } catch (err) {
+              console.error('Error checking admin role:', err);
+              setIsAdmin(false);
+            }
+          };
+          
+          checkAdminRole();
         } else {
           setIsAdmin(false);
         }
@@ -49,9 +56,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Check admin role for initial session
+      if (session?.user) {
+        try {
+          console.log('Checking admin role for initial session:', session.user.id);
+          const { data: roleData, error } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .eq('role', 'admin')
+            .maybeSingle();
+          
+          console.log('Initial admin role check result:', { roleData, error });
+          setIsAdmin(!!roleData);
+        } catch (err) {
+          console.error('Error checking initial admin role:', err);
+          setIsAdmin(false);
+        }
+      }
+      
       setLoading(false);
     });
 
