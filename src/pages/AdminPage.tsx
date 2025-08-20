@@ -12,7 +12,7 @@ import { CheckCircle, XCircle, Users, FileText, Star, Shield, Trash2, ArrowUp, A
 import { useToast } from '@/hooks/use-toast';
 
 const AdminPage = () => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, session } = useAuth();
   const { toast } = useToast();
   const [pendingAds, setPendingAds] = useState<Ad[]>([]);
   const [stats, setStats] = useState({
@@ -35,9 +35,34 @@ const AdminPage = () => {
 
   const fetchAdminData = async () => {
     try {
-      console.log('Fetching admin data...');
+      console.log('Starting fetchAdminData...');
+      console.log('Current user:', user);
+      console.log('Is admin:', isAdmin);
+      console.log('Session:', session);
       
+      // Fetch all users for management (prioritize this as it's what user wants to see)
+      console.log('Fetching users...');
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      console.log('Users query result:', { usersData, usersError });
+      
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        toast({
+          title: "Error",
+          description: `Failed to fetch users: ${usersError.message}`,
+          variant: "destructive",
+        });
+      } else {
+        console.log('Successfully fetched users:', usersData?.length || 0);
+        setUsers(usersData || []);
+      }
+
       // Fetch pending ads
+      console.log('Fetching pending ads...');
       const { data: pendingData, error: pendingError } = await supabase
         .from('ads')
         .select(`
@@ -48,25 +73,19 @@ const AdminPage = () => {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
+      console.log('Pending ads query result:', { pendingData, pendingError });
+      
       if (pendingError) {
         console.error('Error fetching pending ads:', pendingError);
-        throw pendingError;
+        toast({
+          title: "Error", 
+          description: `Failed to fetch pending ads: ${pendingError.message}`,
+          variant: "destructive",
+        });
+      } else {
+        console.log('Successfully fetched pending ads:', pendingData?.length || 0);
+        setPendingAds(pendingData || []);
       }
-      console.log('Fetched pending ads:', pendingData?.length || 0);
-      setPendingAds(pendingData || []);
-
-      // Fetch all users for management
-      const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (usersError) {
-        console.error('Error fetching users:', usersError);
-        throw usersError;
-      }
-      console.log('Fetched users:', usersData?.length || 0);
-      setUsers(usersData || []);
 
       // Fetch stats
       const [usersCount, adsCount, pendingCount, approvedCount] = await Promise.all([
@@ -341,14 +360,33 @@ const AdminPage = () => {
     }
   };
 
-  if (loading || loadingData) return <div>Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (loading || loadingData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p>Loading admin data...</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Auth loading: {loading ? 'Yes' : 'No'} | Data loading: {loadingData ? 'Yes' : 'No'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    console.log('No user, redirecting to login');
+    return <Navigate to="/login" />;
+  }
+
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
           <p className="text-muted-foreground">You don't have admin privileges.</p>
+          <p className="text-xs text-muted-foreground mt-4">
+            User ID: {user.id} | Is Admin: {isAdmin ? 'Yes' : 'No'}
+          </p>
         </div>
       </div>
     );
